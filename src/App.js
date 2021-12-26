@@ -674,6 +674,7 @@ function App() {
   const [autoPlay, setAutoPlay] = useState(false)
   const [showActive, setShowActive] = useState(true)
   const [noAnimation, setNoAnimation] = useState(true)
+  const [sent, setSent] = useState(true)
   const [graphData, setGraphData] = useState({nodes: [], links: []})
   const [width, height] = useWindowSize();
   const fgRef = useRef();
@@ -807,7 +808,7 @@ function App() {
               nodeResolution={3}
               linkOpacity={1}
               linkWidth={1}
-              linkVisibility={(link) => link.source.id === nodeHover}
+              linkVisibility={(link) => sent ? link.source.id === nodeHover : link.target.id === nodeHover}
           />,
         </Layout.Content>
         <Layout.Footer style={{minHeight: '20vh', paddingBottom: "4px !important"}}>
@@ -829,6 +830,7 @@ function App() {
                 if (value) setAutoPlay(false)
                 setNoAnimation(value)
               }} />
+              <Switch style={{ width: '100px'}} checkedChildren="👁️sent" unCheckedChildren="👁️received" checked={sent} onChange={setSent} />
             </div>
             {usersRep.filter(u => u.reputations[roundId] > 1)?.length && (
                 <div style={{ display: 'flex', flexDirection: 'column', height: '20vh', width: '80%', flexWrap: 'wrap', gap: '4px 4px', overflow: 'scroll'}}>
