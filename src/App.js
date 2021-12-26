@@ -671,7 +671,9 @@ function App() {
   const [usersRep, setUsersRep] = useState([])
   const [roundId, setRoundId] = useState(0)
   const [nodeHover, setNodeHover] = useState('')
-  const [autoPlay, setAutoPlay] = useState(true)
+  const [autoPlay, setAutoPlay] = useState(false)
+  const [showActive, setShowActive] = useState(true)
+  const [noAnimation, setNoAnimation] = useState(true)
   const [graphData, setGraphData] = useState({nodes: [], links: []})
   const [width, height] = useWindowSize();
   const fgRef = useRef();
@@ -702,6 +704,14 @@ function App() {
       const lastRound = guild.rounds[roundId]
       const maxRep = Math.max(...Object.values(guild.users).map(u => u.reputations[roundId]))
       setUsersRep(Object.values(guild.users).sort((a, b) => b.reputations[roundId] - a.reputations[roundId]))
+      const activeUsers = {}
+      for (const receiver in lastRound.grants) {
+        activeUsers[receiver] ||= true
+        for (const sender in lastRound.grants[receiver]) {
+          activeUsers[sender] ||= true
+        }
+      }
+
 
       if (!graphData?.nodes?.length) {
         setGraphData({
@@ -710,7 +720,8 @@ function App() {
                 id: k,
                 color: '#' + colorList[parseInt(k.split('-')[0], 16) % colorList.length].hex,
                 name:guild.users[k]?.displayName || 'Missing member',
-                val: Math.round((guild.users[k]?.reputations[roundId] / maxRep) * 100)
+                val: Math.round((guild.users[k]?.reputations[roundId] / maxRep) * 100),
+                show: activeUsers[k] || false
               }))
         })
       } else {
@@ -730,7 +741,8 @@ function App() {
                 nodes: [..._graphData.nodes
                     .map(n => ({
                       ...n,
-                      val: Math.round((guild.users[n.id]?.reputations[roundId] / maxRep) * 100)
+                      val: Math.round((guild.users[n.id]?.reputations[roundId] / maxRep) * 100),
+                      show: activeUsers[n.id] || false
                     }))
                 ],
                 links: []
@@ -739,45 +751,40 @@ function App() {
         )
       }
 
-      for (const receiver in lastRound.grants) {
-        setGraphData((_graphData) => ({
-          nodes: _graphData.nodes,
-          links: [..._graphData.links, ...Object.keys(lastRound.grants[receiver]).map((sender) => ({
+      if (!noAnimation)
+        for (const receiver in lastRound.grants) {
+          setGraphData((_graphData) => ({
+            nodes: _graphData.nodes,
+            links: [..._graphData.links, ...Object.keys(lastRound.grants[receiver]).map((sender) => ({
+              target: receiver,
+              source: sender,
+              color: '#' + colorList[parseInt(sender.split('-')[0], 16) % colorList.length].hex,
+              visibility: (guild.users[sender]?.reputations[roundId] / maxRep) * 100
+            }))]
+          }))
+          await new Promise((resolve) => setTimeout(resolve, 100))
+        }
+      else {
+        const links = []
+        for (const receiver in lastRound.grants) {
+          links.push(...Object.keys(lastRound.grants[receiver]).map((sender) => ({
             target: receiver,
             source: sender,
             color: '#' + colorList[parseInt(sender.split('-')[0], 16) % colorList.length].hex,
             visibility: (guild.users[sender]?.reputations[roundId] / maxRep) * 100
-          }))]
+          })))
+        }
+        setGraphData((_graphData) => ({
+          nodes: _graphData.nodes,
+          links: links
         }))
-        await new Promise((resolve) => setTimeout(resolve, 100))
       }
-      setGraphData((_graphData) => {
-            const nodeMax = _graphData.nodes.find(n => n.val === 100)
-            if (nodeMax) {
-              const distance = 1500;
-              const distRatio = 1 + distance / Math.hypot(nodeMax.x, nodeMax.y, nodeMax.z);
-
-              fgRef.current.cameraPosition(
-                  {x: nodeMax.x * distRatio, y: nodeMax.y * distRatio, z: nodeMax.z * distRatio}, // new position
-                  nodeMax, // lookAt ({ x, y, z })
-                  1000  // ms transition duration
-              )
-            }
-            return {
-              nodes: [..._graphData.nodes
-                  .map(n => ({
-                    ...n,
-                    val: Math.round((guild.users[n.id]?.reputations[roundId + 1] / maxRep) * 100)
-                  }))
-              ],
-              links: _graphData.links
-            }
-          }
-      )
       setUsersRep(Object.values(guild.users).sort((a, b) => b.reputations[roundId+1] - a.reputations[roundId+1]))
-      setRoundId((_roundId) => autoPlay && roundId < guild.rounds.length - 1 ? roundId + 1 : roundId)
+
+      if (autoPlay && roundId < guild.rounds.length - 1)
+        setRoundId((_roundId) => roundId + 1)
     })().then().catch()
-  }, [guild, roundId])
+  }, [guild, roundId, autoPlay, noAnimation])
 
   return !guild ? (
       <Layout style={{height: '100vh'}}>
@@ -789,6 +796,7 @@ function App() {
       <Layout>
         <Layout.Content>
           <ForceGraph3D
+              nodeVisibility={(node) => !showActive || node.show}
               nodeOpacity={1}
               onNodeHover={(node) => setNodeHover(node?.id)}
               width={width}
@@ -796,7 +804,7 @@ function App() {
               ref={fgRef}
               graphData={graphData}
               onNodeClick={handleClick}
-              nodeResolution={6}
+              nodeResolution={3}
               linkOpacity={1}
               linkWidth={1}
               linkVisibility={(link) => link.source.id === nodeHover}
@@ -815,7 +823,12 @@ function App() {
                   ))
                 }
               </Select>
-              <Switch style={{ width: '100px'}} checkedChildren="auto" unCheckedChildren="manual" checked={autoPlay} onChange={setAutoPlay} />
+              <Switch style={{ width: '100px'}} checkedChildren="auto" unCheckedChildren="manual" checked={autoPlay} onChange={setAutoPlay} disabled={noAnimation} />
+              <Switch style={{ width: '100px'}} checkedChildren="👁️active" unCheckedChildren="👁️all" checked={showActive} onChange={setShowActive} />
+              <Switch style={{ width: '100px'}} checkedChildren="👁️static" unCheckedChildren="👁️animation" checked={noAnimation} onChange={(value) => {
+                if (value) setAutoPlay(false)
+                setNoAnimation(value)
+              }} />
             </div>
             {usersRep.filter(u => u.reputations[roundId] > 1)?.length && (
                 <div style={{ display: 'flex', flexDirection: 'column', height: '20vh', width: '80%', flexWrap: 'wrap', gap: '4px 4px', overflow: 'scroll'}}>
