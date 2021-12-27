@@ -666,7 +666,7 @@ const colorList = [
 ]
 
 function App() {
-  const [hash, setHash] = useState('')
+  const [jsonLink, setJsonLink] = useState('')
   const [guild, setGuild] = useState(null)
   const [usersRep, setUsersRep] = useState([])
   const [roundId, setRoundId] = useState(0)
@@ -681,11 +681,11 @@ function App() {
 
   useEffect(() => {
     (async () => {
-      if (!hash) return
-      const res = await axios.get('https://api2.aleph.im/api/v0/storage/raw/' + hash)
+      if (!jsonLink) return
+      const res = await axios.get(jsonLink)
       if (res.data) setGuild(res.data)
     })().then().catch()
-  }, [hash])
+  }, [jsonLink])
 
 
   const handleClick = useCallback(node => {
@@ -790,7 +790,7 @@ function App() {
   return !guild ? (
       <Layout style={{height: '100vh'}}>
         <Layout.Content style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-          <Input style={{width: 300, height: 50}} placeholder="Guild DB hash" value={hash} onChange={(value) => value?.target?.value?.length === 64 && setHash(value?.target?.value)} />
+          <Input style={{width: 300, height: 50}} placeholder="Guild DB link" value={jsonLink} onChange={(value) => value?.target?.value?.endsWith('.json') && setJsonLink(value?.target?.value)} />
         </Layout.Content>
       </Layout>
   ) : (
@@ -814,7 +814,7 @@ function App() {
         <Layout.Footer style={{minHeight: '20vh', paddingBottom: "4px !important"}}>
           <div style={{ display: 'flex', flexDirection: 'row', height: "100%", alignItems: 'baseline', justifyContent: 'flex-start', gap: '10px 30px'}}>
             <div style={{ display: 'flex', flexDirection: 'column', width: '20%', rowGap: '10px'}}>
-              <Input placeholder="Guild DB hash" value={hash} onChange={(value) => value?.target?.value?.length === 64 && setHash(value?.target?.value)} />
+              <Input placeholder="Guild DB link" value={jsonLink} onChange={(value) => value?.target?.value?.endsWith('.json') && setJsonLink(value?.target?.value)} />
               <Typography.Title level={5}>Show round:</Typography.Title>
               <Select value={`${roundId}`} style={{width: 120}} onChange={(value) => setRoundId(parseInt(value))}>
                 {
