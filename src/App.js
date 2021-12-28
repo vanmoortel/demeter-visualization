@@ -779,8 +779,8 @@ function App() {
           nodes: _graphData.nodes,
           links: links
         }))
+        await new Promise((resolve) => setTimeout(resolve, 2000))
       }
-      setUsersRep(Object.values(guild.users).sort((a, b) => b.reputations[roundId+1] - a.reputations[roundId+1]))
 
       if (autoPlay && roundId < guild.rounds.length - 1)
         setRoundId((_roundId) => roundId + 1)
@@ -824,7 +824,7 @@ function App() {
                   ))
                 }
               </Select>
-              <Switch style={{ width: '100px'}} checkedChildren="auto" unCheckedChildren="manual" checked={autoPlay} onChange={setAutoPlay} disabled={noAnimation} />
+              <Switch style={{ width: '100px'}} checkedChildren="auto" unCheckedChildren="manual" checked={autoPlay} onChange={setAutoPlay} />
               <Switch style={{ width: '100px'}} checkedChildren="👁️active" unCheckedChildren="👁️all" checked={showActive} onChange={setShowActive} />
               <Switch style={{ width: '100px'}} checkedChildren="👁️static" unCheckedChildren="👁️animation" checked={noAnimation} onChange={(value) => {
                 if (value) setAutoPlay(false)
